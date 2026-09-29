@@ -1,0 +1,6 @@
+{
+    "name": "Knead.Editor",
+    "rootNamespace": "Meowarts.Knead.Editor",
+    "references": ["Knead"],
+    "includePlatforms": ["Editor"]
+}

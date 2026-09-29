@@ -1,0 +1,117 @@
+// Same math as KneadSolver.Deform (C#), on the GPU: reads the source vertices, writes the deformed mesh's
+// vertex buffer in place.
+#pragma kernel Deform
+
+struct Source
+{
+    float3 position;
+    float3 normal;
+    float4 tangent;
+};
+
+StructuredBuffer<Source> _Source;
+StructuredBuffer<float3> _Offsets; // padded handles, (r + 2)^3
+RWByteAddressBuffer _Dest;
+
+uint _Count;
+uint _Stride;
+int _PositionOffset;
+int _NormalOffset;  // -1 if the mesh has none
+int _TangentOffset; // -1 if the mesh has none
+int4 _Resolution;
+int _Interpolation; // 0 cubic, 1 linear smooth, 2 linear sharp
+float4x4 _BoxFromMesh;
+float4x4 _MeshFromBox;
+
+int Axis(float t, int r, out float w[4], out float d[4], out int count)
+{
+    float s = r - 1;
+    if (t < 0 || t > 1) s = 0;
+    t = saturate(t);
+    float x = t * (r - 1);
+    int c = min((int)x, r - 2);
+    float f = x - c;
+    w[2] = 0; w[3] = 0; d[2] = 0; d[3] = 0;
+    if (_Interpolation == 0)
+    {
+        float g = 1 - f, f2 = f * f, f3 = f2 * f;
+        w[0] = g * g * g / 6;
+        w[1] = (3 * f3 - 6 * f2 + 4) / 6;
+        w[2] = (-3 * f3 + 3 * f2 + 3 * f + 1) / 6;
+        w[3] = f3 / 6;
+        d[0] = -0.5 * g * g * s;
+        d[1] = (1.5 * f2 - 2 * f) * s;
+        d[2] = (-1.5 * f2 + f + 0.5) * s;
+        d[3] = 0.5 * f2 * s;
+        count = 4;
+        return c;
+    }
+    if (_Interpolation == 1)
+    {
+        float m = f * f * (3 - 2 * f), dm = 6 * f * (1 - f) * s;
+        w[0] = 1 - m; w[1] = m;
+        d[0] = -dm; d[1] = dm;
+    }
+    else
+    {
+        w[0] = 1 - f; w[1] = f;
+        d[0] = -s; d[1] = s;
+    }
+    count = 2;
+    return c + 1;
+}
+
+[numthreads(64, 1, 1)]
+void Deform(uint3 id : SV_DispatchThreadID)
+{
+    uint v = id.x;
+    if (v >= _Count) return;
+    Source src = _Source[v];
+
+    float3 p = mul(_BoxFromMesh, float4(src.position, 1)).xyz;
+    float wx[4], wy[4], wz[4], ex[4], ey[4], ez[4];
+    int cx, cy, cz;
+    int sx = Axis(p.x, _Resolution.x, wx, ex, cx);
+    int sy = Axis(p.y, _Resolution.y, wy, ey, cy);
+    int sz = Axis(p.z, _Resolution.z, wz, ez, cz);
+    int padX = _Resolution.x + 2, padXY = padX * (_Resolution.y + 2);
+
+    float3 o = 0, dx = 0, dy = 0, dz = 0;
+    for (int k = 0; k < cz; k++)
+    for (int j = 0; j < cy; j++)
+    {
+        float wyz = wy[j] * wz[k], eyz = ey[j] * wz[k], wyez = wy[j] * ez[k];
+        int row = (sz + k) * padXY + (sy + j) * padX + sx;
+        for (int i = 0; i < cx; i++)
+        {
+            float3 h = _Offsets[row + i];
+            o += h * (wx[i] * wyz);
+            dx += h * (ex[i] * wyz);
+            dy += h * (wx[i] * eyz);
+            dz += h * (wx[i] * wyez);
+        }
+    }
+
+    uint base = v * _Stride;
+    float3 position = mul(_MeshFromBox, float4(p + o, 1)).xyz;
+    _Dest.Store3(base + _PositionOffset, asuint(position));
+
+    float3 a = float3(1 + dx.x, dx.y, dx.z);
+    float3 b = float3(dy.x, 1 + dy.y, dy.z);
+    float3 c = float3(dz.x, dz.y, 1 + dz.z);
+    if (_NormalOffset >= 0)
+    {
+        // Inverse transpose of the Jacobian, through the mesh → box transform.
+        float3 n = mul(src.normal, (float3x3)_MeshFromBox);
+        n = n.x * cross(b, c) + n.y * cross(c, a) + n.z * cross(a, b);
+        n = normalize(mul(n, (float3x3)_BoxFromMesh));
+        _Dest.Store3(base + _NormalOffset, asuint(n));
+    }
+    if (_TangentOffset >= 0)
+    {
+        float3 t = mul((float3x3)_BoxFromMesh, src.tangent.xyz);
+        t = a * t.x + b * t.y + c * t.z;
+        t = normalize(mul((float3x3)_MeshFromBox, t));
+        _Dest.Store4(base + _TangentOffset, asuint(float4(t, src.tangent.w)));
+    }
+}
