@@ -87,7 +87,7 @@ namespace Meowarts.Knead
 
     // Makes a Knead Box react to physics: each handle is a point mass on a damped spring, linked to its neighbors,
     // pushed by collision impulses and resting weight, and by the box's own acceleration.
-    [ExecuteAlways, RequireComponent(typeof(KneadBox)), DisallowMultipleComponent, AddComponentMenu("Knead/Knead Physics Box")]
+    [ExecuteAlways, RequireComponent(typeof(KneadBox)), DisallowMultipleComponent, AddComponentMenu("Knead/Knead Physics Box"), Icon(KneadBox.IconPath)]
     public sealed class KneadPhysicsBox : MonoBehaviour
     {
         [SerializeField] KneadMaterialPreset preset = KneadMaterialPreset.Jelly;

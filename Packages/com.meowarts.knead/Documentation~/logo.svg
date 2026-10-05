@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- one dough orange, four shades: top lightest, front, then the two pinched side faces in shadow -->
+  <path d="M22 40 L52 26 L106 26 L76 40 Z" fill="#FFD9A0"/>
+  <path d="M50 71 L80 57 Q89 68 106 88 L76 102 Q59 82 50 71 Z" fill="#C46A1C"/>
+  <path d="M76 40 L106 26 Q89 46 80 57 L50 71 Q59 60 76 40 Z" fill="#E08A2E"/>
+  <path d="M22 40 L76 40 Q59 60 50 71 Q59 82 76 102 L22 102 Z" fill="#F5A742"/>
+</svg>

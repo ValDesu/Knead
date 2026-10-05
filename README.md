@@ -1,3 +1,5 @@
+<img src="Packages/com.meowarts.knead/Documentation~/logo.svg" alt="Knead logo" width="128">
+
 # Knead
 
 [![Unity 6](https://img.shields.io/badge/Unity-6000.0%2B-000000?logo=unity&logoColor=white)](https://unity.com/releases/unity-6)

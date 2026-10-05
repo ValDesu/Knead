@@ -16,9 +16,11 @@ namespace Meowarts.Knead
 
     // A lattice box that deforms the renderers on its GameObject and children. Handles are offsets from the rest
     // grid in normalized box space (0..1), so poses survive resizing the box.
-    [ExecuteAlways, DisallowMultipleComponent, AddComponentMenu("Knead/Knead Box")]
+    [ExecuteAlways, DisallowMultipleComponent, AddComponentMenu("Knead/Knead Box"), Icon(IconPath)]
     public sealed class KneadBox : MonoBehaviour
     {
+        internal const string IconPath = "Packages/com.meowarts.knead/Editor/Icons/KneadIcon.png";
+
         [SerializeField] Vector3 center;
         [SerializeField] Vector3 size = Vector3.one;
         [SerializeField] Vector3Int resolution = new(3, 3, 3);
