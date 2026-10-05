@@ -88,7 +88,7 @@ public class Landing : MonoBehaviour
 | `Axis` | The axis effects act along (Y by default) |
 | `KneadPhysicsBox.Preset`, `.Material` | Pick a preset, or set every setting |
 | `KneadPhysicsBox.AddImpulse(point, impulse)` | A hit without a rigidbody: bullets, punches |
-| `KneadPhysicsBox.ResetDents()` | Clears permanent dents |
+| `KneadPhysicsBox.ResetDents(duration)` | Clears permanent dents, right away or fading out over `duration` seconds |
 
 ## Physics materials
 

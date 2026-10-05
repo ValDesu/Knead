@@ -614,6 +614,22 @@ namespace Meowarts.Knead.Tests
         }
 
         [Test]
+        public void DentsReformOverTime()
+        {
+            var (box, p) = Make(KneadMaterialPreset.Clay);
+            p.AddImpulse(new Vector3(0, 0.5f, 0), Vector3.down * Mathf.Sqrt(2f * 9.81f));
+            Run(p, box, 4f);
+            float dent = Sink(box);
+            Assert.Greater(dent, 0.02f, "clay keeps the mark");
+            p.ResetDents(2f);
+            Run(p, box, 1f);
+            Assert.That(Sink(box), Is.InRange(0.002f, dent * 0.8f), "halfway, the dent is partly back");
+            Run(p, box, 3f);
+            Assert.Less(Sink(box), 0.002f, "gone after the duration");
+            Assert.IsTrue(p.IsSleeping);
+        }
+
+        [Test]
         public void ARigidbodySinksIntoTheDent()
         {
             var (box, p) = Make(KneadMaterialPreset.Pillow);

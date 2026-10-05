@@ -127,6 +127,7 @@ namespace Meowarts.Knead
         Vector3[] x = Array.Empty<Vector3>(), v, dent, force, output;
         float[] pressure;
         bool sleeping = true;
+        float reformLeft; // seconds until the dents are gone (ResetDents with a duration)
 
         struct Load { public Vector3 point, force; }
         readonly Dictionary<Collider, List<Load>> loads = new();
@@ -230,16 +231,20 @@ namespace Meowarts.Knead
             Array.Clear(x, 0, x.Length);
             Array.Clear(v, 0, v.Length);
             Array.Clear(dent, 0, dent.Length);
+            reformLeft = 0f;
             loads.Clear();
             motionSamples = 0;
             WriteOutput();
             sleeping = true;
         }
 
-        // Clears the permanent dents; the box springs back.
-        public void ResetDents()
+        // Clears the permanent dents; the box springs back. With a duration (seconds), the dents fade out
+        // over that time instead, and new dents made meanwhile fade out with them.
+        public void ResetDents(float duration = 0f)
         {
-            Array.Clear(dent, 0, dent.Length);
+            EnsureSize();
+            reformLeft = Mathf.Max(duration, 0f);
+            if (reformLeft == 0f) Array.Clear(dent, 0, dent.Length);
             sleeping = false;
         }
 
@@ -370,6 +375,14 @@ namespace Meowarts.Knead
                 foreach (var l in list)
                     Spread(l.point, transform.InverseTransformDirection(l.force), force);
 
+            // Linear fade: scaling by 1 - dt/left each step reaches zero exactly when the time is up.
+            if (reformLeft > 0f)
+            {
+                float keep = Mathf.Max(0f, 1f - dt / reformLeft);
+                for (int i = 0; i < n; i++) dent[i] *= keep;
+                reformLeft = keep > 0f ? reformLeft - dt : 0f;
+            }
+
             // Dents are the new rest shape: every elastic force below acts on x - dent.
             // Pressure = compression (negative divergence of the displacement): pushes the material sideways.
             if (m.Volume > 0f)
@@ -427,7 +440,7 @@ namespace Meowarts.Knead
             }
 
             float still = 1e-3f * Mathf.Min(ws.x, Mathf.Min(ws.y, ws.z));
-            if (maxV < still * still)
+            if (maxV < still * still && reformLeft <= 0f)
             {
                 sleeping = true;
                 Array.Clear(v, 0, n);
